@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: reachinbox-pg
+    environment:
+      - POSTGRES_USER=app
+      - POSTGRES_PASSWORD=app
+      - POSTGRES_DB=reachinbox
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: reachinbox-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: reachinbox-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" 
+    ports:
+      - "9200:9200"
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: reachinbox-backend
+    ports:
+      - "5000:5000"
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    depends_on:
+      - redis
+      - elasticsearch
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    env_file:
+      - ./backend/.env
+    environment:
+      - REDIS_HOST=reachinbox-redis
+      - REDIS_PORT=6379
+      - ELASTICSEARCH_NODE=http://reachinbox-es:9200
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: reachinbox-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    env_file:
+      - ./frontend/.env
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1200"
