@@ -111,7 +111,7 @@ export default function ScheduleForm() {
     try {
       await scheduleEmailJob({
         userId: dbUserId,
-        recipients: allRecipients, 
+        recipient: allRecipients,
         subject: formData.subject,
         body: formData.body,
         delay: parseInt(formData.delay) || 0,
